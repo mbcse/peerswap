@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant U1 as User A (Asker)
+    participant U2 as User B (Fulfiller)
+    participant SC as Smart Contracts
+    participant R as Relayer
+    participant CA as Chain A (Sepolia)
+    participant CB as Chain B (Base Sepolia)
+
+    U1->>SC: 1. Create Swap
+    SC->>CA: E1: Deploy Source Escrow
+    CA->>CA: State: User Funds Locked (Hashlock)
+    
+    U2->>SC: 2. Fulfill Swap
+    SC->>CB: E2: Deploy Destination Escrow
+    CB->>CB: State: Fulfiller Funds Locked (Hashlock)
+    
+    R->>SC: 3. Set Fulfiller
+    SC->>CA: State: Fulfiller Set
+    
+    U1->>R: 4. Submit Secret
+    R->>CA: E3: Secret Revealed
+    CA->>CA: State: Unlock with Secret
+    R->>CB: E3: Secret Revealed
+    CB->>CB: State: Unlock with Secret
+    
+    CA->>U1: 5. User A Gets Tokens
+    CB->>U2: 5. User B Gets Tokens
+    
+    Note over CA,CB: Swap Completed Successfully

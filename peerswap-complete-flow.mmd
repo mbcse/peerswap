@@ -1,0 +1,241 @@
+graph TD
+    subgraph UserFlow["👥 User Flow"]
+        A[User Opens PeerSwap] --> B{Wallet Connected?}
+        B -->|No| C[Connect Wallet]
+        C --> B
+        B -->|Yes| D[Main Dashboard]
+        
+        D --> E[Create Swap]
+        D --> F[Fulfill Swap]
+        D --> G[Claim Tokens]
+        
+        E --> E1[Select Chains & Tokens]
+        E1 --> E2[Enter Amounts]
+        E2 --> E3[Generate Secret]
+        E3 --> E4[Deploy Source Escrow]
+        E4 --> E5[Swap Listed]
+        
+        F --> F1[Browse Available Swaps]
+        F1 --> F2[Select Swap]
+        F2 --> F3[Deploy Destination Escrow]
+        F3 --> F4[Deposit Tokens]
+        F4 --> F5[Swap Ready]
+        
+        G --> G1[Enter Secret]
+        G1 --> G2[Submit to Backend]
+        G2 --> G3[Tokens Released]
+    end
+    
+    subgraph Security["🔐 Security Mechanisms"]
+        H[Secret Generation] --> I[Hashlock Creation]
+        I --> J[keccak256 Hashing]
+        J --> K[One-way Function]
+        K --> L[Prevents Front-running]
+        
+        M[Timelock Start] --> N[0-24h: Withdrawal Only]
+        N --> O[24-48h: Withdrawal OR Cancel]
+        O --> P[48-72h: Withdrawal OR Cancel OR Rescue]
+        P --> Q[72h+: Rescue Only]
+    end
+    
+    subgraph SmartContracts["📜 Smart Contracts"]
+        SC1[EscrowFactory]
+        SC2[EscrowSrc]
+        SC3[EscrowDst]
+        
+        SC1 --> SC2
+        SC1 --> SC3
+    end
+    
+    subgraph Backend["⚙️ Backend Services"]
+        BE1[Express API]
+        BE2[Relayer Service]
+        BE3[Swap Storage]
+        BE4[Event Monitoring]
+        
+        BE1 --> BE3
+        BE2 --> BE4
+        BE4 --> BE2
+    end
+    
+    subgraph Blockchains["🌐 Blockchains"]
+        BC1[Ethereum Sepolia]
+        BC2[Base Sepolia]
+        
+        BC1 --> BC2
+        BC2 --> BC1
+    end
+    
+    subgraph CompleteFlow["🔄 Complete Swap Flow"]
+        CF1[1. User A Creates Swap] --> CF2[2. Secret Generated]
+        CF2 --> CF3[3. Source Escrow Deployed]
+        CF3 --> CF4[4. Tokens Locked with Hashlock]
+        CF4 --> CF5[5. User B Fulfills Swap]
+        CF5 --> CF6[6. Destination Escrow Deployed]
+        CF6 --> CF7[7. Relayer Sets Fulfiller]
+        CF7 --> CF8[8. User A Claims with Secret]
+        CF8 --> CF9[9. Secret Revealed]
+        CF9 --> CF10[10. Both Escrows Withdrawn]
+        CF10 --> CF11[11. Swap Completed]
+    end
+    
+    subgraph TimeSecurity["⏰ Time-based Security"]
+        TS1[Swap Created] --> TS2[Timelock Starts]
+        TS2 --> TS3{Time Elapsed?}
+        TS3 -->|0-24h| TS4[Only Secret Withdrawal]
+        TS3 -->|24-48h| TS5[Withdrawal OR Cancel]
+        TS3 -->|48-72h| TS6[Withdrawal OR Cancel OR Rescue]
+        TS3 -->|72h+| TS7[Only Rescue Available]
+        
+        TS4 --> TS8[Secret Revealed]
+        TS8 --> TS9[Both Parties Get Tokens]
+        TS5 --> TS10[User Can Cancel]
+        TS10 --> TS11[Original Depositor Refunded]
+        TS6 --> TS12[Platform Can Rescue]
+        TS12 --> TS13[Platform Gets Tokens]
+    end
+    
+    subgraph CrossChain["🔗 Cross-Chain Security"]
+        CC1[Source Chain Escrow] --> CC2[Hashlock + Timelock]
+        CC3[Destination Chain Escrow] --> CC4[Same Hashlock + Timelock]
+        CC2 --> CC5[Atomic Operation]
+        CC4 --> CC5
+        CC5 --> CC6[Both Succeed or Both Fail]
+    end
+    
+    subgraph Relayer["🤖 Relayer Process"]
+        R1[User Submits Secret] --> R2[Backend Validates]
+        R2 --> R3[Relayer Executes Withdrawals]
+        R3 --> R4[Source Chain Withdrawal]
+        R3 --> R5[Destination Chain Withdrawal]
+        R4 --> R6[Atomic Completion]
+        R5 --> R6
+    end
+    
+    %% Connections between sections
+    E4 --> CF3
+    F3 --> CF6
+    G2 --> CF8
+    CF7 --> R1
+    CF9 --> R1
+    
+    %% Security connections
+    E3 --> H
+    CF4 --> I
+    CF9 --> J
+    CF2 --> M
+    
+    %% Smart contract connections
+    CF3 --> SC2
+    CF6 --> SC3
+    SC1 --> CF3
+    SC1 --> CF6
+    
+    %% Backend connections
+    CF3 --> BE4
+    CF6 --> BE4
+    R1 --> BE1
+    BE2 --> R3
+    
+    %% Blockchain connections
+    SC2 --> BC1
+    SC3 --> BC2
+    R4 --> BC1
+    R5 --> BC2
+    
+    %% Complete flow connections
+    CF1 --> CF2
+    CF2 --> CF3
+    CF3 --> CF4
+    CF4 --> CF5
+    CF5 --> CF6
+    CF6 --> CF7
+    CF7 --> CF8
+    CF8 --> CF9
+    CF9 --> CF10
+    CF10 --> CF11
+    
+    %% Time security connections
+    CF1 --> TS1
+    TS1 --> TS2
+    TS2 --> TS3
+    TS3 --> TS4
+    TS3 --> TS5
+    TS3 --> TS6
+    TS3 --> TS7
+    TS4 --> TS8
+    TS8 --> TS9
+    TS5 --> TS10
+    TS10 --> TS11
+    TS6 --> TS12
+    TS12 --> TS13
+    
+    %% Cross-chain connections
+    CF3 --> CC1
+    CF6 --> CC3
+    CC1 --> CC2
+    CC3 --> CC4
+    CC2 --> CC5
+    CC4 --> CC5
+    CC5 --> CC6
+    
+    %% Relayer connections
+    CF8 --> R1
+    R1 --> R2
+    R2 --> R3
+    R3 --> R4
+    R3 --> R5
+    R4 --> R6
+    R5 --> R6
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style D fill:#e8f5e8
+    style E fill:#fff3e0
+    style F fill:#fce4ec
+    style G fill:#f3e5f5
+    
+    style H fill:#e1f5fe
+    style I fill:#e8f5e8
+    style J fill:#fff3e0
+    style K fill:#fce4ec
+    style L fill:#f3e5f5
+    
+    style M fill:#e1f5fe
+    style N fill:#e8f5e8
+    style O fill:#fff3e0
+    style P fill:#fce4ec
+    style Q fill:#f3e5f5
+    
+    style CF1 fill:#e1f5fe
+    style CF2 fill:#e8f5e8
+    style CF3 fill:#fff3e0
+    style CF4 fill:#fce4ec
+    style CF5 fill:#f3e5f5
+    style CF6 fill:#e0f2f1
+    style CF7 fill:#e1f5fe
+    style CF8 fill:#e8f5e8
+    style CF9 fill:#fff3e0
+    style CF10 fill:#fce4ec
+    style CF11 fill:#f3e5f5
+    
+    style TS1 fill:#e1f5fe
+    style TS2 fill:#e8f5e8
+    style TS3 fill:#fff3e0
+    style TS4 fill:#fce4ec
+    style TS5 fill:#f3e5f5
+    style TS6 fill:#e0f2f1
+    style TS7 fill:#e1f5fe
+    style TS8 fill:#e8f5e8
+    style TS9 fill:#fff3e0
+    style TS10 fill:#fce4ec
+    style TS11 fill:#f3e5f5
+    style TS12 fill:#e0f2f1
+    style TS13 fill:#e1f5fe
+    
+    style R1 fill:#e1f5fe
+    style R2 fill:#e8f5e8
+    style R3 fill:#fff3e0
+    style R4 fill:#fce4ec
+    style R5 fill:#f3e5f5
+    style R6 fill:#e0f2f1

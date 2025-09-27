@@ -1,0 +1,95 @@
+graph TD
+    subgraph Hashlock["Hashlock Mechanism"]
+        A["User A generates Secret"] --> B["Secret: 0x1234...abcd"]
+        B --> C["Hashlock = keccak256(Secret)"]
+        C --> D["Hashlock: 0x5678...efgh"]
+        D --> E["Hashlock stored in both escrows"]
+        E --> F["Tokens locked until secret revealed"]
+    end
+    
+    subgraph Timelock["Timelock Mechanism"]
+        G["Timelock Period Starts"] --> H["Withdrawal Timelock: 24h"]
+        H --> I["Cancellation Timelock: 48h"]
+        I --> J["Rescue Timelock: 72h"]
+        J --> K["Different actions available at different times"]
+    end
+    
+    subgraph Lifecycle["Swap Lifecycle with Security"]
+        L["Swap Created"] --> M["Source Escrow Deployed"]
+        M --> N["Destination Escrow Deployed"]
+        N --> O["Tokens Deposited"]
+        O --> P{"Time Elapsed?"}
+        
+        P -->|"0-24h"| Q["Only Withdrawal with Secret"]
+        P -->|"24-48h"| R["Withdrawal OR Cancellation"]
+        P -->|"48-72h"| S["Withdrawal OR Cancellation OR Rescue"]
+        P -->|"72h+"| T["Only Rescue Available"]
+        
+        Q --> U["Secret Revealed"]
+        U --> V["Both Parties Get Tokens"]
+        V --> W["Swap Completed"]
+        
+        R --> X["User Can Cancel"]
+        X --> Y["Original Depositor Gets Refund"]
+        
+        S --> Z["Platform Can Rescue"]
+        Z --> AA["Platform Gets Tokens"]
+    end
+    
+    subgraph Crypto["Cryptographic Security"]
+        BB["Secret Generation"] --> CC["64-character hex string"]
+        CC --> DD["keccak256 hashing"]
+        DD --> EE["One-way function"]
+        EE --> FF["Secret must be known to unlock"]
+        FF --> GG["Hashlock prevents front-running"]
+    end
+    
+    subgraph TimeBased["Time-based Security"]
+        HH["Timelock Start"] --> II["Block timestamp recorded"]
+        II --> JJ["Smart contract enforces time limits"]
+        JJ --> KK["Prevents indefinite locking"]
+        KK --> LL["Automatic resolution after time"]
+    end
+    
+    subgraph CrossChain["Cross-Chain Security Model"]
+        MM["Source Chain Escrow"] --> NN["Hashlock + Timelock"]
+        OO["Destination Chain Escrow"] --> PP["Same Hashlock + Timelock"]
+        NN --> QQ["Atomic Operation"]
+        PP --> QQ
+        QQ --> RR["Both succeed or both fail"]
+    end
+    
+    subgraph Relayer["Relayer Role"]
+        SS["User Submits Secret"] --> TT["Backend Validates"]
+        TT --> UU["Relayer Executes Withdrawals"]
+        UU --> VV["Source Chain Withdrawal"]
+        UU --> WW["Destination Chain Withdrawal"]
+        VV --> XX["Atomic Completion"]
+        WW --> XX
+    end
+    
+    style A fill:#e1f5fe
+    style B fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#fce4ec
+    style E fill:#f3e5f5
+    style F fill:#e0f2f1
+    
+    style G fill:#e1f5fe
+    style H fill:#e8f5e8
+    style I fill:#fff3e0
+    style J fill:#fce4ec
+    style K fill:#f3e5f5
+    
+    style L fill:#e1f5fe
+    style M fill:#e8f5e8
+    style N fill:#fff3e0
+    style O fill:#fce4ec
+    style P fill:#f3e5f5
+    style Q fill:#e0f2f1
+    style R fill:#e1f5fe
+    style S fill:#e8f5e8
+    style T fill:#fff3e0
+    style U fill:#fce4ec
+    style V fill:#f3e5f5
+    style W fill:#e0f2f1

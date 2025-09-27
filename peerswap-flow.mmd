@@ -1,0 +1,63 @@
+graph TD
+    A[User Opens PeerSwap] --> B{Wallet Connected?}
+    B -->|No| C[Connect Wallet]
+    C --> B
+    B -->|Yes| D[Main Dashboard]
+    
+    D --> E[Create Swap]
+    D --> F[Fulfill Swap]
+    D --> G[Claim Tokens]
+    D --> H[View Active Swaps]
+    
+    E --> E1[Select Source Chain]
+    E1 --> E2[Select Destination Chain]
+    E2 --> E3[Choose Tokens & Amounts]
+    E3 --> E4[Generate Secret & Hashlock]
+    E4 --> E5[Deploy Source Escrow]
+    E5 --> E6[Store Swap in Backend]
+    E6 --> E7[Swap Created Successfully]
+    
+    F --> F1[Browse Available Swaps]
+    F1 --> F2[Select Swap to Fulfill]
+    F2 --> F3[Deploy Destination Escrow]
+    F3 --> F4[Deposit Tokens]
+    F4 --> F5[Swap Ready for Claiming]
+    
+    G --> G1[Enter Secret]
+    G1 --> G2[Submit to Backend]
+    G2 --> G3[Relayer Processes Claim]
+    G3 --> G4[Withdraw from Both Escrows]
+    G4 --> G5[Swap Completed]
+    
+    H --> H1[View Active Orders]
+    H --> H2[View Completed Orders]
+    
+    subgraph "Smart Contracts"
+        SC1[EscrowFactory]
+        SC2[EscrowSrc]
+        SC3[EscrowDst]
+    end
+    
+    subgraph "Backend Services"
+        BE1[Express API]
+        BE2[Relayer Service]
+        BE3[Swap Storage]
+    end
+    
+    subgraph "Blockchains"
+        BC1[Ethereum Sepolia]
+        BC2[Base Sepolia]
+    end
+    
+    E5 --> SC1
+    F3 --> SC1
+    G4 --> SC2
+    G4 --> SC3
+    
+    E6 --> BE1
+    F5 --> BE1
+    G2 --> BE1
+    G3 --> BE2
+    
+    SC1 --> BC1
+    SC1 --> BC2
