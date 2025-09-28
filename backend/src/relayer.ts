@@ -46,6 +46,7 @@ export function startRelayer(addresses: Addresses) {
 
   console.log("🌐 [relayer] Initialized clients for chains:", Object.keys(dstClients));
 
+  // Listen to factory events for escrow deployments and secret revelations
   async function subscribe(chain: keyof typeof dstClients) {
     const client = dstClients[chain];
     const srcWallet = srcWallets[chain];
@@ -53,6 +54,7 @@ export function startRelayer(addresses: Addresses) {
 
     console.log(`👂 [${chain}] Setting up factory event listeners for:`, factory);
 
+    // Test RPC connectivity before starting listener
     try {
       const blockNumber = await client.getBlockNumber();
       console.log(`✅ [${chain}] RPC connectivity test passed - latest block:`, blockNumber);
@@ -73,6 +75,7 @@ export function startRelayer(addresses: Addresses) {
         if (currentBlock > lastProcessedBlock) {
           console.log(`🔍 [${chain}] Checking blocks ${lastProcessedBlock + 1n} to ${currentBlock} for factory events...`);
           
+          // Get all factory logs and decode them
           const allFactoryLogs = await client.getLogs({
             address: factory,
             fromBlock: lastProcessedBlock + 1n,
@@ -86,10 +89,12 @@ export function startRelayer(addresses: Addresses) {
           const srcLogs = [];
           const dstLogs = [];
           
+          // Decode each log to determine its type
           for (const log of allFactoryLogs) {
             try {
               console.log(`🔍 [${chain}] Processing log from block ${log.blockNumber}, tx ${log.transactionHash}`);
               
+              // Try to decode as factory event
               const decoded = decodeEventLog({
                 abi: EscrowFactoryAbi,
                 data: log.data,
@@ -108,12 +113,14 @@ export function startRelayer(addresses: Addresses) {
                 console.log(`ℹ️ [${chain}] Unknown factory event: ${decoded.eventName}`);
               }
             } catch (e) {
+              // Log couldn't be decoded with factory ABI, skip
               console.warn(`⚠️ [${chain}] Could not decode factory log:`, e instanceof Error ? e.message : String(e));
               console.warn(`⚠️ [${chain}] Log data:`, log.data);
               console.warn(`⚠️ [${chain}] Log topics:`, log.topics);
             }
           }
 
+          // Process SrcEscrowCreated events
           for (const log of srcLogs) {
             const executionData = (log.args as any).srcExecutionData;
             const hashlock = executionData.hashlock;
@@ -125,17 +132,20 @@ export function startRelayer(addresses: Addresses) {
               askerAmount: executionData.askerAmount.toString()
             });
 
+            // Update swap record to mark source as deployed
             const swap = getSwapByHashlock(hashlock);
             if (swap) {
               // Determine which chain the source escrow is on
               const srcChainId = BigInt(swap.executionData.srcChainId);
               const isSrcOnSepolia = srcChainId === 11155111n;
               
+              // Use the correct client for the source chain
               const srcChainClient = isSrcOnSepolia ? dstClients.sepolia : dstClients.baseSepolia;
               
               console.log(`🔍 [${chain}] Source escrow is on ${isSrcOnSepolia ? 'Sepolia' : 'Base Sepolia'} (chainId: ${srcChainId})`);
               console.log(`🔍 [${chain}] Verifying source escrow on ${isSrcOnSepolia ? 'Sepolia' : 'Base Sepolia'}`);
               
+              // Verify the source escrow is actually deployed by checking bytecode on the correct chain
               try {
                 const srcCode = await srcChainClient.getBytecode({ address: swap.srcEscrow as `0x${string}` });
                 const isActuallyDeployed = !!(srcCode && srcCode !== "0x");
@@ -150,12 +160,14 @@ export function startRelayer(addresses: Addresses) {
                 }
               } catch (verifyError) {
                 console.warn(`⚠️ [${chain}] Could not verify source escrow deployment:`, verifyError);
+                // Don't mark as deployed if we can't verify
               }
             } else {
               console.warn(`⚠️ [${chain}] No swap found for hashlock:`, hashlock?.slice(0, 10) + '...');
             }
           }
 
+          // Process DstEscrowCreated events
           for (const log of dstLogs) {
             const { escrow, hashlock, asker } = (log.args as any);
 
@@ -163,6 +175,7 @@ export function startRelayer(addresses: Addresses) {
             console.log(`🏠 [${chain}] Destination escrow address:`, escrow);
             console.log(`👤 [${chain}] Asker:`, asker);
 
+            // Update swap record to mark destination as deployed
             const swap = getSwapByHashlock(hashlock);
             if (swap) {
               const updatedSwap = {
@@ -173,13 +186,16 @@ export function startRelayer(addresses: Addresses) {
               upsertSwap(updatedSwap);
               console.log(`✅ [${chain}] Marked destination escrow as deployed for hashlock:`, hashlock?.slice(0, 10) + '...');
 
+              // CRITICAL: Set the relayer as fulfiller on the source escrow
               if (swap.srcEscrow && swap.srcDeployed) {
                 try {
                   console.log(`🔧 [${chain}] Setting relayer as fulfiller for source escrow:`, swap.srcEscrow);
                   
+                  // Determine which chain the source escrow is on
                   const srcChainId = BigInt(swap.executionData.srcChainId);
                   const isSrcOnSepolia = srcChainId === 11155111n;
                   
+                  // Get the correct factory address for the source chain
                   const srcFactoryAddress = isSrcOnSepolia 
                     ? "0xA26D2Ee1d536b0E17240c8c32D7e894578e21148"  // Sepolia factory
                     : "0x1F71948C09EA1702392d463174733d394621Ae17"; // Base Sepolia factory
@@ -188,9 +204,11 @@ export function startRelayer(addresses: Addresses) {
                   console.log(`🔧 [${chain}] Using source chain factory:`, srcFactoryAddress);
                   console.log(`🔧 [${chain}] Relayer address:`, account.address);
                   
+                  // Use the source chain client for the transaction
                   const srcChainClient = isSrcOnSepolia ? dstClients.sepolia : dstClients.baseSepolia;
                   const srcChainWallet = isSrcOnSepolia ? srcWallets.sepolia : srcWallets.baseSepolia;
                   
+                  // First verify the source escrow actually exists
                   try {
                     const srcCode = await srcChainClient.getBytecode({ address: swap.srcEscrow as `0x${string}` });
                     if (!srcCode || srcCode === "0x") {
@@ -204,6 +222,7 @@ export function startRelayer(addresses: Addresses) {
                     return;
                   }
                   
+                  // Check what relayer address is configured in the source chain factory
                   const factoryRelayer = await srcChainClient.readContract({
                     address: srcFactoryAddress as `0x${string}`,
                     abi: EscrowFactoryAbi as any,
@@ -218,6 +237,7 @@ export function startRelayer(addresses: Addresses) {
                     return;
                   }
                   
+                  // Check if the source escrow is active before trying to set fulfiller
                   try {
                     const isActive = await srcChainClient.readContract({
                       address: swap.srcEscrow as `0x${string}`,
@@ -240,6 +260,7 @@ export function startRelayer(addresses: Addresses) {
                       return;
                     }
                     
+                    // Check current fulfiller address
                     const currentFulfiller = await srcChainClient.readContract({
                       address: swap.srcEscrow as `0x${string}`,
                       abi: [
@@ -295,6 +316,7 @@ export function startRelayer(addresses: Addresses) {
 
                   console.log(`✅ [${chain}] Fulfiller set successfully! Transaction:`, txHash);
                   
+                  // Verify the fulfiller was actually set
                   setTimeout(async () => {
                     try {
                       const updatedExecutionData = await srcChainClient.readContract({
@@ -342,7 +364,7 @@ export function startRelayer(addresses: Addresses) {
                     } catch (verifyError) {
                       console.error(`❌ [${chain}] Could not verify fulfiller was set:`, verifyError);
                     }
-                  }, 5000);
+                  }, 5000); // Wait 5 seconds for transaction to be mined
 
                 } catch (e) {
                   console.error(`❌ [${chain}] Failed to set fulfiller:`, e);
@@ -354,6 +376,8 @@ export function startRelayer(addresses: Addresses) {
             }
           }
 
+          // Also listen for DstSecretRevealed events from any deployed destination escrows
+          // We need to check all destination escrows we know about
           const allSwapsForSecrets = Object.values((global as any).swapStore || {});
           for (const swap of allSwapsForSecrets as any[]) {
             if (swap.dstDeployed && swap.dstEscrow) {
@@ -377,6 +401,7 @@ export function startRelayer(addresses: Addresses) {
                       secretLogs.push({ ...rawLog, args: decoded.args });
                     }
                   } catch (e) {
+                    // Not a DstSecretRevealed event, skip
                   }
                 }
 
@@ -418,6 +443,7 @@ export function startRelayer(addresses: Addresses) {
             console.log(`⏰ [${chain}] No new factory events in blocks ${lastProcessedBlock + 1n}-${currentBlock}`);
           }
 
+          // Debug: Check if we have any swaps that should have source escrows deployed
           const allSwapsForDebug = Object.values((global as any).swapStore || {});
           const swapsWithSrcEscrow = allSwapsForDebug.filter((swap: any) => swap.srcEscrow && !swap.srcDeployed);
           if (swapsWithSrcEscrow.length > 0) {
@@ -426,6 +452,7 @@ export function startRelayer(addresses: Addresses) {
               console.log(`  - Hashlock: ${swap.executionData.hashlock.slice(0, 10)}..., SrcEscrow: ${swap.srcEscrow}, Deployed: ${swap.srcDeployed}`);
             });
 
+            // Fallback: Check if source escrows are actually deployed by checking bytecode
             for (const swap of swapsWithSrcEscrow) {
               try {
                 const swapData = swap as any;
@@ -452,9 +479,11 @@ export function startRelayer(addresses: Addresses) {
         console.error(`💥 [${chain}] Error polling for factory events:`, error);
       }
 
+      // Poll every 10 seconds
       setTimeout(pollForFactoryEvents, 10000);
     }
 
+    // Start polling
     pollForFactoryEvents();
     console.log(`✅ [${chain}] Factory event polling successfully started (10s intervals)`);
   }
