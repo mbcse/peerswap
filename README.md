@@ -155,6 +155,11 @@ Available on:
 
 **Live now:** [peerswap.vercel.app](https://peerswap.vercel.app)
 
+## 📱 Available On
+
+- **Farcaster**: [https://farcaster.xyz/miniapps/Fsw6avz8_EKu/peerswap](https://farcaster.xyz/miniapps/Fsw6avz8_EKu/peerswap)
+- **World App**: [https://world.org/mini-app?app_id=app_506a8a5565ba2fca4e523d0a4487d74a](https://world.org/mini-app?app_id=app_506a8a5565ba2fca4e523d0a4487d74a)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
