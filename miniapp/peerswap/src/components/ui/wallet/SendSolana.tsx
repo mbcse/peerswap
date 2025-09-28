@@ -7,6 +7,28 @@ import { Button } from "../Button";
 import { truncateAddress } from "../../../lib/truncateAddress";
 import { renderError } from "../../../lib/errorUtils";
 
+/**
+ * SendSolana component handles sending SOL transactions on Solana.
+ * 
+ * This component provides a simple interface for users to send SOL transactions
+ * using their connected Solana wallet. It includes transaction status tracking
+ * and error handling.
+ * 
+ * Features:
+ * - SOL transaction sending
+ * - Transaction status tracking
+ * - Error handling and display
+ * - Loading state management
+ * 
+ * Note: This component is a placeholder implementation. In a real application,
+ * you would integrate with a Solana wallet adapter and transaction library
+ * like @solana/web3.js to handle actual transactions.
+ * 
+ * @example
+ * ```tsx
+ * <SendSolana />
+ * ```
+ */
 export function SendSolana() {
   const [solanaTransactionState, setSolanaTransactionState] = useState<
     | { status: 'none' }
@@ -18,8 +40,13 @@ export function SendSolana() {
   const { connection: solanaConnection } = useSolanaConnection();
   const { sendTransaction, publicKey } = useSolanaWallet();
 
+  // This should be replaced but including it from the original demo
+  // https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/components/Demo.tsx#L718
   const ashoatsPhantomSolanaWallet = 'Ao3gLNZAsbrmnusWVqQCPMrcqNi6jdYgu8T6NCoXXQu1';
 
+  /**
+   * Handles sending the Solana transaction
+   */
   const sendSolanaTransaction = useCallback(async () => {
     setSolanaTransactionState({ status: 'pending' });
     try {

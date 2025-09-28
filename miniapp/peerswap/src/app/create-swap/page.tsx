@@ -11,6 +11,8 @@ import sdk from "@farcaster/miniapp-sdk";
 import { ChainSwitcher } from "~/components/ui/ChainSwitcher";
 import { sepolia, baseSepolia } from "wagmi/chains";
 import { handleTokenApproval, requiresApproval } from "~/utils/approvalUtils";
+import { SelfVerification } from "~/components/SelfVerification";
+import { useSelfVerification } from "~/hooks/useSelfVerification";
 
 // Token addresses for testnets
 const TOKENS = {
@@ -62,6 +64,8 @@ export default function CreateSwapPage() {
   const [srcEscrow, setSrcEscrow] = useState<string>("");
   const [dstEscrow, setDstEscrow] = useState<string>("");
   const [swapCreated, setSwapCreated] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const { isVerified, setVerification } = useSelfVerification(address);
 
   // Get token balances - only query when on correct chain
   const isCorrectChain = (srcChain === "sepolia" && chainId === sepolia.id) ||
@@ -495,6 +499,55 @@ export default function CreateSwapPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Identity Verification Section */}
+      {isConnected && !swapCreated && (
+        <div className="space-y-4">
+          <div className="card p-4 border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-medium">Identity Verification</h3>
+              {isVerified && (
+                <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  ✓ Verified
+                </span>
+              )}
+            </div>
+
+            {!isVerified && !showVerification ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Enhance your swap security and build trust with identity verification.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => setShowVerification(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Verify Identity
+                  </Button>
+                  <span className="text-xs text-gray-500 py-2">Optional - you can create swaps without verification</span>
+                </div>
+              </div>
+            ) : !isVerified && showVerification ? (
+              <SelfVerification
+                onVerified={(proofData) => {
+                  setVerification(proofData);
+                  setShowVerification(false);
+                }}
+                onSkip={() => setShowVerification(false)}
+                title="Verify Your Identity"
+                description="Verify your nationality to build trust in your swap orders"
+                requireVerification={false}
+              />
+            ) : (
+              <div className="text-sm text-green-700">
+                Your identity has been verified. Verified users tend to have higher fulfillment rates.
+              </div>
+            )}
+          </div>
         </div>
       )}
 

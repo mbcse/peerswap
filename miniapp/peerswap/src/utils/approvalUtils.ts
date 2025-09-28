@@ -12,6 +12,9 @@ export interface ApprovalOptions {
   gasMultiplier?: number;
 }
 
+/**
+ * Handles token approval with retry logic and better error handling
+ */
 export async function handleTokenApproval(
   publicClient: PublicClient,
   walletClient: WalletClient,

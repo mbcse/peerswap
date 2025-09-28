@@ -11,6 +11,7 @@ import { useNeynarUser } from "../hooks/useNeynarUser";
 import sdk from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { formatTokenAmount, getTokenDecimals, getTokenSymbol } from "~/utils/formatAmount";
+import { WorldAppStatus } from "~/components/WorldAppStatus";
 
 export interface AppProps {
   title?: string;
@@ -84,7 +85,11 @@ export default function App(
       <div className="container py-4 space-y-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">{title}</h1>
-          <p className="text-sm text-gray-600 mb-4">P2P Cross-Chain Token Swaps</p>
+          <p className="text-sm text-gray-600 mb-1">P2P Cross-Chain Token Swaps</p>
+          <p className="text-xs text-gray-500 mb-3">Trade with people directly • Trade with friends • No intermediaries</p>
+          <div className="flex justify-center mb-4">
+            <WorldAppStatus />
+          </div>
         </div>
 
         {/* Wallet Connection */}
@@ -243,6 +248,71 @@ export default function App(
               )}
             </div>
           ))}
+        </div>
+
+        {/* Mini App Links Section */}
+        <div className="mt-8 border-t pt-6">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Available On</h3>
+            <p className="text-sm text-gray-600">Try PeerSwap on your favorite platforms</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+            {/* Farcaster Mini App Link */}
+            <a
+              href="https://farcaster.xyz/miniapps/Fsw6avz8_EKu/peerswap"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card p-4 flex items-center space-x-3 hover:shadow-md transition-shadow group"
+            >
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                <svg className="w-6 h-6 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">Farcaster</div>
+                <div className="text-xs text-gray-500">Available as Mini App</div>
+              </div>
+              <div className="w-4 h-4 text-gray-400">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </div>
+            </a>
+
+            {/* World App Mini App Link */}
+            <a
+              href="https://world.org/mini-app?app_id=app_506a8a5565ba2fca4e523d0a4487d74a"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card p-4 flex items-center space-x-3 hover:shadow-md transition-shadow group"
+            >
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="12" r="6"/>
+                  <circle cx="12" cy="12" r="2"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">World App</div>
+                <div className="text-xs text-gray-500">Available as Mini App</div>
+              </div>
+              <div className="w-4 h-4 text-gray-400">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </div>
+            </a>
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Access PeerSwap directly from your favorite Web3 platforms
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ export function useContractWrite() {
     try {
       console.log('Using standard wagmi for contract writing');
       
+      // Try to switch to the target chain first
       try {
         await switchChain({ chainId: params.chainId });
         console.log(`Successfully switched to chain ${params.chainId}`);
@@ -26,6 +27,7 @@ export function useContractWrite() {
         console.log('Chain switch failed, proceeding anyway:', switchError);
       }
 
+      // Use standard wagmi writeContract
       return await wagmiWriteContract({
         address: params.address,
         abi: params.abi,
