@@ -7,6 +7,7 @@ import { CHAINS, CHAIN_RPC } from "./chains";
 import { EscrowFactoryAbi } from "./factoryAbi";
 import { upsertSwap, listSwaps, getSwapByHashlock } from "./store";
 import { frames } from "./frames";
+import { SelfVerifier } from "@selfxyz/core";
 
 const app = express();
 app.use(cors({
@@ -14,6 +15,14 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Initialize Self SDK verifier for testnet
+const selfVerifier = new SelfVerifier({
+  appId: process.env.SELF_APP_ID || "test-app-id",
+  appSecret: process.env.SELF_APP_SECRET || "test-app-secret",
+  environment: "sandbox", // Use sandbox for testnet with mock passport
+  mockPassport: true // Enable mock passport for testing
+});
 
 app.get("/health", (_req, res) => {
   console.log("🏥 [api] Health check requested");
@@ -263,9 +272,9 @@ app.get("/swap-status/:hashlock", async (req, res) => {
   }
 });
 
-// Endpoint to store verification status
+// Endpoint to verify identity using Self SDK
 app.post("/verify-identity", async (req, res) => {
-  console.log("🔐 [api] POST /verify-identity - User submitting verification proof");
+  console.log("🔐 [api] POST /verify-identity - User submitting Self SDK verification proof");
 
   try {
     const { proofData, userAddress } = req.body;
@@ -274,30 +283,59 @@ app.post("/verify-identity", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: proofData, userAddress" });
     }
 
-    console.log(`✅ [api] Identity verification stored for user: ${userAddress}`);
+    console.log(`🔍 [api] Verifying Self SDK proof for user: ${userAddress}`);
+
+    // Verify the proof using Self SDK
+    const verificationResult = await selfVerifier.verifyProof(proofData);
+
+    if (!verificationResult.isValid) {
+      console.warn(`❌ [api] Self SDK verification failed for user: ${userAddress}`);
+      return res.status(400).json({ 
+        error: "Identity verification failed",
+        details: verificationResult.error || "Invalid proof"
+      });
+    }
+
+    console.log(`✅ [api] Self SDK verification successful for user: ${userAddress}`);
+    console.log(`📊 [api] Verification details:`, {
+      verified: verificationResult.isValid,
+      passportType: verificationResult.passportType || 'unknown',
+      nationality: verificationResult.nationality || 'unknown',
+      ageVerified: verificationResult.ageVerified || false
+    });
 
     // Store verification in global state (in production, use a database)
     (global as any).verificationStore = (global as any).verificationStore || {};
     (global as any).verificationStore[userAddress.toLowerCase()] = {
       proofData,
+      verificationResult,
       timestamp: Date.now(),
       verified: true
     };
 
     res.json({
       success: true,
-      message: "Identity verification stored successfully"
+      message: "Identity verification successful",
+      verificationDetails: {
+        verified: true,
+        passportType: verificationResult.passportType,
+        nationality: verificationResult.nationality,
+        ageVerified: verificationResult.ageVerified
+      }
     });
 
   } catch (error) {
-    console.error("💥 [api] Error storing verification:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("💥 [api] Error verifying identity with Self SDK:", error);
+    res.status(500).json({ 
+      error: "Internal server error during verification",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
 // Endpoint to check verification status
 app.get("/verify-identity/:address", async (req, res) => {
-  console.log("🔍 [api] GET /verify-identity - Checking verification status");
+  console.log("🔍 [api] GET /verify-identity - Checking Self SDK verification status");
 
   try {
     const { address } = req.params;
@@ -312,13 +350,19 @@ app.get("/verify-identity/:address", async (req, res) => {
       res.json({
         verified: isRecent,
         timestamp: verification.timestamp,
-        expired: !isRecent
+        expired: !isRecent,
+        verificationDetails: verification.verificationResult ? {
+          passportType: verification.verificationResult.passportType,
+          nationality: verification.verificationResult.nationality,
+          ageVerified: verification.verificationResult.ageVerified
+        } : null
       });
     } else {
       res.json({
         verified: false,
         timestamp: null,
-        expired: false
+        expired: false,
+        verificationDetails: null
       });
     }
 
